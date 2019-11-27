@@ -99,12 +99,13 @@ plt.gcf().clear()
 
 # make two graphs comparing l10, l50 and l90 levels for one day compared to all other days
 # and comparing the distribution of annoyance on this day vs all other days of the same type
-compdays = [datetime.date(2019,1,8)]
+limitedate = datetime.date(2019,7,31)
+compdays = [limitedate - datetime.timedelta(days=x) for x in range(365)]
 comptype = 'week'
-comp_selected_data = selected_data.loc[(selected_data['weekend'] == comptype) | (selected_data['dateonly'].isin(compdays))].copy()
-comp_levels_per_day = levels_per_day.loc[(levels_per_day['weekend'] == comptype) | (levels_per_day['dateonly'].isin(compdays))].copy()
-comp_selected_data['group'] = comp_selected_data.apply(lambda x: 'compared' if x.dateonly in compdays else 'baseline', axis=1)
-comp_levels_per_day['group'] = comp_levels_per_day.apply(lambda x: 'compared' if x.dateonly in compdays else 'baseline', axis=1)
+comp_selected_data = selected_data.copy()
+comp_levels_per_day = levels_per_day.copy()
+comp_selected_data['group'] = comp_selected_data.apply(lambda x: 'before' if x.dateonly in compdays else 'after', axis=1)
+comp_levels_per_day['group'] = comp_levels_per_day.apply(lambda x: 'before' if x.dateonly in compdays else 'after', axis=1)
 
 sns.set(style='darkgrid')
 sns.set_palette(sns.xkcd_palette(colors = ['dark orange', 'windows blue', 'kelly green']))
@@ -118,14 +119,14 @@ cldpd = sns.catplot(x='group', y='LEQ', kind='box', data=comp_selected_data, sho
 cldpd.savefig('compared_LEQdist_per_day.png')
 plt.gcf().clear()
 
-annoying_compared = comp_selected_data.loc[(comp_selected_data['level_cat'] == 'annoying') & (comp_selected_data['group'] == 'compared')].copy()
-annoying_baseline = comp_selected_data.loc[(comp_selected_data['level_cat'] == 'annoying') & (comp_selected_data['group'] == 'baseline')].copy()
-x_compared = annoying_compared.index.hour + (annoying_compared.index.minute/60)
-x_baseline = annoying_baseline.index.hour + (annoying_baseline.index.minute/60)
+annoying_before = comp_selected_data.loc[(comp_selected_data['level_cat'] == 'annoying') & (comp_selected_data['group'] == 'before')].copy()
+annoying_after = comp_selected_data.loc[(comp_selected_data['level_cat'] == 'annoying') & (comp_selected_data['group'] == 'after')].copy()
+x_compared = annoying_before.index.hour + (annoying_before.index.minute/60)
+x_baseline = annoying_after.index.hour + (annoying_after.index.minute/60)
 sns.set(style='darkgrid')
 sns.set_palette(sns.xkcd_palette(colors = ['windows blue', 'kelly green']))
-alc = sns.distplot(x_compared, kde=True, rug=False, label='compared')
-alc = sns.distplot(x_baseline, kde=True, rug=False, label='baseline')
+alc = sns.distplot(x_compared, kde=True, rug=False, label='before')
+alc = sns.distplot(x_baseline, kde=True, rug=False, label='after')
 alc.set(xlim=(7,25), xticks=[h for h in range(8,25,2)], xlabel='Heure', ylabel='Fréquence de bruit >L10')
 alc.legend()
 alc.figure.savefig('compared_annoyance_level.png')
