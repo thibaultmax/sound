@@ -41,13 +41,13 @@ all_data['weekday'] = all_data.index.weekday
 all_data['yearmonth'] = all_data.index.year.astype(str) + all_data.index.month.astype(str)
 all_data['weekend'] = all_data['weekday'].apply(lambda x: 'week' if x<5 else 'weekend')
 selected_data = all_data.loc[((all_data['weekday'] < 5 ) & (all_data['time_only'] >= datetime.time(7,30,0)) & (all_data['time_only'] <= datetime.time(23,59,0))) | ((all_data['weekday'] >= 5) & (all_data['time_only'] >= datetime.time(7,30,0)) & (all_data['time_only'] <= datetime.time(21,29,0)))].copy()
-LEQ_L10_overall = selected_data.quantile([0.9]).LEQ.item()
-LEQ_L50_overall = selected_data.quantile([0.5]).LEQ.item()
-LEQ_L90_overall = selected_data.quantile([0.1]).LEQ.item()
+LEQ_L10_overall = selected_data['LEQ'].quantile(0.9)
+LEQ_L50_overall = selected_data['LEQ'].quantile(0.5)
+LEQ_L90_overall = selected_data['LEQ'].quantile(0.1)
 selected_data['level_cat'] = selected_data['LEQ'].apply(lambda x: 'background' if x < LEQ_L90_overall else 'normal' if x < LEQ_L10_overall else 'annoying')
-levels_per_day = selected_data.groupby(['dateonly']).quantile([0.1,0.5,0.9]).reset_index()
+levels_per_day = selected_data.groupby(['dateonly'])['LEQ'].quantile([0.1,0.5,0.9]).reset_index()
 levels_per_day['level_type'] = levels_per_day['level_1'].apply(lambda x: 'L90' if x == 0.1 else 'L50' if x == 0.5 else 'L10' if x == 0.9 else '')
-levels_per_day['weekend'] = levels_per_day['weekday'].apply(lambda x: 'week' if x < 5 else 'weekend')
+levels_per_day['weekend'] = levels_per_day['dateonly'].apply(lambda x: 'week' if x.weekday() < 5 else 'weekend')
 levels_per_day['yearmonth'] = levels_per_day['dateonly'].apply(lambda x: str(x.year) + str(x.month))
 
 # make a graph of the frequency of levels above overall L10 at each hour during the day for every month
@@ -62,12 +62,12 @@ for name, group in selected_data.groupby(['yearmonth']):
 	mal = sns.distplot(x_weekend, kde=True, rug=False, label='fin de semaine')
 	mal.set(xlim=(7,25), xticks=[h for h in range(8,25,2)], xlabel='Heure', ylabel='Fréquence de bruit >L10')
 	mal.legend()
-	mal.figure.savefig(name + 'annoyance_level.png')
+	mal.figure.savefig(name[0] + 'annoyance_level.png')
 	plt.gcf().clear()
-	group_l10 = group.quantile([0.9]).LEQ.item()
-	group_l50 = group.quantile([0.5]).LEQ.item()
-	group_l90 = group.quantile([0.1]).LEQ.item()
-	print('For month: {}  L10 was: {}   L50 was:  {}   L90 was: {}'.format(name, group_l10, group_l50, group_l90))
+	group_l10 = group['LEQ'].quantile([0.9])
+	group_l50 = group['LEQ'].quantile([0.5])
+	group_l90 = group['LEQ'].quantile([0.1])
+	print('For month: {}  L10 was: {}   L50 was:  {}   L90 was: {}'.format(name[0], group_l10, group_l50, group_l90))
 
 # make a graph plotting the l10, l50 and l90 levels of every month over time
 for name, group in levels_per_day.groupby(['yearmonth']):
@@ -77,7 +77,7 @@ for name, group in levels_per_day.groupby(['yearmonth']):
 	lpd.set(xlabel='Date', ylabel='Niveau de son (dB-A)')
 	lpd.fig.autofmt_xdate()
 	lpd._legend.texts[0].set_text('Mesure')
-	lpd.savefig(name + 'levels_per_day.png')
+	lpd.savefig(name[0] + 'levels_per_day.png')
 	plt.gcf().clear()
 
 	# make a graph plotting the distribution of l10, l50 and l90 of every day during the month
@@ -85,7 +85,7 @@ for name, group in levels_per_day.groupby(['yearmonth']):
 	sns.set_palette(sns.xkcd_palette(colors = ['windows blue', 'kelly green', 'dark orange']))
 	mal = sns.catplot(x='level_type', y='LEQ', data=group, kind='box')
 	mal.set(ylabel='Niveau de son (db-A)', xlabel='Mesure')
-	mal.savefig(name + 'sound_level_dist.png')
+	mal.savefig(name[0] + 'sound_level_dist.png')
 
 # make a graph plotting the l10, l50 and l90 levels of every day over time
 sns.set(style='darkgrid')
